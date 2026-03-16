@@ -305,11 +305,12 @@ def generate_payments(subscriptions: pd.DataFrame) -> pd.DataFrame:
         )
 
         if subscription.plan_type == "monthly":
-            payment_dates = list(pd.date_range(subscription_start, end_date, freq="MS"))
-            if subscription_start.day != 1:
-                payment_dates = [subscription_start] + [
-                    date for date in payment_dates if date > subscription_start
-                ]
+            # Monthly renewals follow the subscription anniversary date, not the first day of each month.
+            payment_dates: List[pd.Timestamp] = []
+            renewal_date = subscription_start
+            while renewal_date <= end_date:
+                payment_dates.append(renewal_date.normalize())
+                renewal_date = (renewal_date + pd.DateOffset(months=1)).normalize()
 
             for order, payment_date in enumerate(payment_dates):
                 if payment_date > end_date:
